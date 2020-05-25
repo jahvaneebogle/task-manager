@@ -1,9 +1,18 @@
 import os
 from tinydb import TinyDB, Query
 import PySimpleGUI.PySimpleGUI as sg
+import logging
+
+logging.basicConfig(filename="main.log",
+                    level=logging.DEBUG,
+                    format = '%(asctime)s - %(levelname)s - %(message)s',
+                    filemode = "w")
 
 class Main:
     def __init__(self):
+
+        # TODO: Redefine path to not be OS independent
+
         self.database_path = os.getcwd() + "/database"
         self.tasks_path = self.database_path + "/tasks.json"
         self.completed_path = self.database_path + "/completed.json"
@@ -21,7 +30,7 @@ class Main:
         except FileExistsError:
             pass
         except OSError:
-            print("Unable to create necessary files")
+            logging.warning("Unable to create necessary files")
 
     def add_task(self, task_to_add):
         task_to_add = str(task_to_add)
@@ -51,6 +60,9 @@ if __name__ == "__main__":
         main.setup()
 
     def Layout(): # Main layout
+
+        # TODO: Display specific task value instead of entire dict. item
+        
         sg.theme('LightGreen')
         layout = [
                     [sg.Text('Add Task: '), sg.InputText(key="TASK")],
@@ -69,25 +81,22 @@ if __name__ == "__main__":
         if event in ('Add Task'): #Add user task to listbox
             main.add_task(values["TASK"])
             window["TASK"].update("") # Remove commited entry from input
-            print(main.task_list())
-        
+            logging.debug("{}:{}".format(event,values["TASK"]))
+
         if event in ('Reset Task List'):
             main.reset_tasks()
-            print(main.task_list())
+            logging.debug(event)
 	
-	# TODO: Add event on selection of task value
-        ''' 
+	# TODO: Add event on selection of task 
+        '''
         if event in ("LIST"):
-            main.remove_task(values[event])
-            print(main.task_list())
        ''' 
         if event in ('Close'):
             break
+            logging.debug(event)
        	
 	# Keep task list up-to-date 
         window["LIST"].update(main.task_list())
-
-        print('You entered ', values["TASK"])
 
     window.close()
     

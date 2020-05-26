@@ -11,7 +11,7 @@ logging.basicConfig(filename="main.log",
 class Main:
     def __init__(self):
 
-        # TODO: Redefine path to not be OS independent
+        # TODO: Redefine path to be OS independent 
 
         self.database_path = os.getcwd() + "/database"
         self.tasks_path = self.database_path + "/tasks.json"
@@ -52,36 +52,47 @@ class Main:
 
     reset_tasks = lambda self: self.tasks.purge()
     reset_completed_tasks = lambda self: self.completed.purge() 
+    
+    def formatted_tasklist(self):
+        formatted_tasklist = [] 
+        for task in self.tasks.all():
+            formatted_tasklist.append(task["task"])
+        return formatted_tasklist
 
 if __name__ == "__main__":
 
     main = Main()
     if not os.path.exists(main.tasks_path and main.completed_path): 
         main.setup()
-
-    def Layout(): # Main layout
-
-        # TODO: Display specific task value instead of entire dict. item
         
-        sg.theme('LightGreen')
+    def layout(): # Main layout
+   
+        sg.theme('Black')
         layout = [
                     [sg.Text('Add Task: '), sg.InputText(key="TASK")],
                     [sg.Button('Add Task'), sg.Button('Add Completed'), sg.Button('Reset Task List'), sg.Button('Close')],
-                    [sg.Listbox(main.task_list(), size=(65,10),enable_events=True, key="LIST")]
+                    [sg.Listbox(main.formatted_tasklist(), size=(65,10),enable_events=True, key="LIST")]
                  ]
 
         window = sg.Window('Task Manager', layout, font="Monaco")
         return window
 
-    window = Layout()
+    window = layout()
 
     while True: # Event Loop
         event, values = window.read()
+        
+        main.formatted_tasklist()
 
         if event in ('Add Task'): #Add user task to listbox
             main.add_task(values["TASK"])
-            window["TASK"].update("") # Remove commited entry from input
-            logging.debug("{}:{}".format(event,values["TASK"]))
+            window["TASK"].update("") # Remove entry from input
+            logging.debug("{}: {}".format(event,values["TASK"]))
+
+        # TODO: Add completed functionality
+        '''
+        if event in ("Add Completed"):
+        '''
 
         if event in ('Reset Task List'):
             main.reset_tasks()
@@ -96,7 +107,7 @@ if __name__ == "__main__":
             logging.debug(event)
        	
 	# Keep task list up-to-date 
-        window["LIST"].update(main.task_list())
-
+        window["LIST"].update(main.formatted_tasklist())
+        
     window.close()
     

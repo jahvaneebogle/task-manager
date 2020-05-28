@@ -11,8 +11,6 @@ logging.basicConfig(filename="main.log",
 class Main:
     def __init__(self):
 
-        # TODO: Redefine paths to be OS independent 
-
         self.database_path = os.getcwd() + "/database"
         self.tasks_path = self.database_path + "/tasks.json"
 
@@ -40,16 +38,19 @@ class Main:
         self.tasks.upsert({
             "task": completed_task,
             "completed": True # Returns 1
-            }, Query().task == str(completed_task) ) # Search from via key, then update completed condition 
+            }, Query().task == str(completed_task) ) # Search via key, then update completed condition 
+
+    def mark_uncompleted(self, uncompleted_task):
+        self.tasks.upsert({
+            "task": uncompleted_task,
+            "completed": False
+            }, Query().task == str(uncompleted_task) ) 
 
     remove_task = lambda self, task_to_remove: self.tasks.remove(Query().task.search(str(task_to_remove)))
-    remove_completed_task = lambda self, completed_to_remove: self.completed.remove(Query().completed.search(str(completed_to_remove)))
 
     task_list = lambda self: self.tasks.all()
-    completed_list = lambda self: self.completed.all()
 
     reset_tasks = lambda self: self.tasks.purge()
-    reset_completed_tasks = lambda self: self.completed.purge() 
     
     def formatted_tasklist(self):
         formatted_tasklist = [] 
@@ -75,20 +76,39 @@ if __name__ == "__main__":
    
         sg.theme('LightGrey1')
         layout = [
-                    [sg.Text('Add Task: '), sg.InputText(key="TASK"), sg.Button('Close')],
-                    [sg.Button('Add Task'), sg.Button('Add Completed'), sg.Button('Reset Task List')],
-                    [sg.Listbox(main.formatted_tasklist(), size=(32,10), enable_events=True, key="LIST"), sg.Listbox(main.formatted_completedlist(), size=(32,10), enable_events = True, key="COMPLETEDLIST")],
+                    [sg.Button('Add Task', button_color = ('black', 'lightgrey')), sg.InputText(key="TASK", enable_events = True, size=(65,1))],
+                    [sg.Button('Close', button_color = ('white', 'grey')), sg.Button('Reset Task List', button_color = ('black', 'lightgrey'))],
+                    [sg.Listbox(main.formatted_tasklist(), size=(35,10), enable_events = True, key="LIST"), sg.Listbox(main.formatted_completedlist(), size=(35,10), enable_events = True, key="COMPLETEDLIST")],
                  ]
 
-        window = sg.Window('Task Manager', layout, font="Monaco")
+        window = sg.Window('Task Manager', layout, font=("Monaco",10) )
         return window
 
     window = layout()
+   
+    # Event functions
+    def on_task_click(*args):
+        value = window["LIST"].get()
+        for i in value:
+            if not i.isspace():
+                main.mark_completed(i)
+                logging.debug("Moved {} to COMPLETEDLIST".format(i))
+
+    def on_completedtask_click(*args):
+        value = window["COMPLETEDLIST"].get()
+        for i in value:
+            main.mark_uncompleted(i)
+            logging.debug("Moved {} to LIST".format(i))
+            
+    # TODO: Add remove function
 
     while True: # Event Loop
         event, values = window.read()
-        
         main.formatted_tasklist()
+        
+        # Binded events
+        window["LIST"].bind("<Button-1>", on_task_click())
+        window["COMPLETEDLIST"].bind("<Button-1>", on_completedtask_click()) 
 
         if event in ('Add Task'): #Add user task to listbox
             main.add_task(values["TASK"])
@@ -103,18 +123,14 @@ if __name__ == "__main__":
         if event in ('Reset Task List'):
             main.reset_tasks()
             logging.debug(event)
-
-	# TODO: Add event on selection of task 
-        '''
-        if event in ("LIST"):
-       ''' 
+        
+	# Keeps listboxs up-to-date 
+        window["LIST"].update(main.formatted_tasklist())
+        window["COMPLETEDLIST"].update(main.formatted_completedlist())
+ 
         if event in ('Close'):
             break
             logging.debug(event)
-       	
-	# Keep listboxs up-to-date 
-        window["LIST"].update(main.formatted_tasklist())
-        window["COMPLETEDLIST"].update(main.formatted_completedlist())
         
     window.close()
     
